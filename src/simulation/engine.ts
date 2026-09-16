@@ -17,10 +17,9 @@ function randomGaussian(mean: number = 0, stdev: number = 1): number {
   return mean + z0 * stdev;
 }
 
-// Generador de nombres representativos del corpus sociológico y del ejercicio del usuario
 const PROLETARIAT_NAMES = [
-  'Sani', 'Djago', 'Rosa', 'Fanon', 'Silvia', 'Gramsci', 'Mariátegui', 
-  'Subalterno-A', 'Subalterno-B', 'Obrero-Textil', 'Minero-Cobre', 
+  'Sani', 'Djago', 'Rosa', 'Fanon', 'Silvia', 'Gramsci', 'Mariátegui',
+  'Subalterno-A', 'Subalterno-B', 'Obrero-Textil', 'Minero-Cobre',
   'Precario-Graphen', 'Operario-Ensamblaje', 'Artesano-Comunal', 'Estibador-Portuario'
 ];
 
@@ -43,60 +42,34 @@ export function createInitialPopulation(config: SimulationConfig): Agent[] {
   const agents: Agent[] = [];
   let idCounter = 1;
 
-  // 1. Proletariado / Subalternos
+  // 1. Proletariado / Subalternos (Cluster Comunitario / Fabril inicial)
   for (let i = 0; i < config.populationProletariat; i++) {
     const name = i < PROLETARIAT_NAMES.length ? PROLETARIAT_NAMES[i] : `Subalterno-${i + 1}`;
-    // Distribución espacial en cuadrante inferior/izquierdo con dispersión
-    const x = 30 + Math.random() * 40;
-    const y = 35 + Math.random() * 40;
-    // Estado interior inicial (Simon/Cioffi-Revilla: alrededor de 10-20 ante un exterior de 100)
-    const interior = 10 + Math.random() * 15;
+    // Agrupados en el área obrera (35-65, 45-75)
+    const x = 35 + (Math.random() - 0.5) * 28;
+    const y = 55 + (Math.random() - 0.5) * 28;
+    const interior = 12 + Math.random() * 16;
+    const rawIp = config.infrapowerMin + Math.random() * (config.infrapowerMax - config.infrapowerMin);
+
     agents.push({
       id: `agent-${idCounter++}`,
       name,
       socialClass: SocialClass.PROLETARIAT,
       interior,
       alienation: 100 - interior,
-      infrapowerRaw: config.infrapowerMin + Math.random() * (config.infrapowerMax - config.infrapowerMin),
-      infrapowerEffective: 0,
+      compliance: 0.65, // Base de compliance/habitus inicial
+      infrapowerRaw: rawIp,
+      infrapowerEffective: rawIp,
+      isStriking: false,
       activePhi: config.phiBase,
-      affinityDescription: 'Alineación inicial',
-      classConsciousness: 0.15 + Math.random() * 0.2,
-      capital: 5 + Math.random() * 10,
+      affinityDescription: 'Alineación inicial en el taller',
+      classConsciousness: 0.15 + Math.random() * 0.15,
+      capitalistAuraExposure: 0,
+      capital: 6 + Math.random() * 8,
       laborPower: 8 + Math.random() * 4,
       wage: config.baseWage,
-      isStriking: false,
-      tactic: ActionTactic.INFRAPODER_MICROSCOPICO,
-      x,
-      y,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-      neighborsCount: 0,
-    });
-  }
-
-  // 2. Capitalistas / Burguesía
-  for (let i = 0; i < config.populationCapitalist; i++) {
-    const name = i < CAPITALIST_NAMES.length ? CAPITALIST_NAMES[i] : `Capitalista-${i + 1}`;
-    const x = 70 + Math.random() * 25;
-    const y = 20 + Math.random() * 30;
-    const interior = 75 + Math.random() * 20; // Asimilados al statu quo
-    agents.push({
-      id: `agent-${idCounter++}`,
-      name,
-      socialClass: SocialClass.CAPITALIST,
-      interior,
-      alienation: Math.max(0, 100 - interior),
-      infrapowerRaw: 0.02,
-      infrapowerEffective: 0.02,
-      activePhi: 0.1,
-      affinityDescription: 'Interés de clase burgués',
-      classConsciousness: 0.85, // Alta conciencia de clase burguesa
-      capital: 150 + Math.random() * 100,
-      laborPower: 2,
-      wage: 0,
-      isStriking: false,
-      tactic: ActionTactic.DISCIPLINA_PATRONAL,
+      realWage: config.baseWage,
+      tactic: ActionTactic.ASIMILACION,
       x,
       y,
       vx: (Math.random() - 0.5) * 0.2,
@@ -105,32 +78,70 @@ export function createInitialPopulation(config: SimulationConfig): Agent[] {
     });
   }
 
+  // 2. Capitalistas / Burguesía (Dispersos competitivamente en cuadrante superior/derecho)
+  for (let i = 0; i < config.populationCapitalist; i++) {
+    const name = i < CAPITALIST_NAMES.length ? CAPITALIST_NAMES[i] : `Capitalista-${i + 1}`;
+    const x = 65 + (i * 25) % 30 + (Math.random() - 0.5) * 10;
+    const y = 20 + ((i * 18) % 25) + (Math.random() - 0.5) * 10;
+    const interior = 82 + Math.random() * 15; // Plenamente asimilados al orden
+
+    agents.push({
+      id: `agent-${idCounter++}`,
+      name,
+      socialClass: SocialClass.CAPITALIST,
+      interior,
+      alienation: Math.max(0, 100 - interior),
+      compliance: 0.98,
+      infrapowerRaw: 0.02,
+      infrapowerEffective: 0.02,
+      isStriking: false,
+      activePhi: 0.1,
+      affinityDescription: 'Interés de clase patronal',
+      classConsciousness: 0.88,
+      capitalistAuraExposure: 1.0,
+      capital: 160 + Math.random() * 120,
+      laborPower: 2,
+      wage: 0,
+      realWage: 0,
+      tactic: ActionTactic.DISCIPLINA_PATRONAL,
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+      neighborsCount: 0,
+    });
+  }
+
   // 3. Tecnocracia / Estado / The Machine Enforcers
   for (let i = 0; i < config.populationTechnocracy; i++) {
     const name = i < TECHNOCRACY_NAMES.length ? TECHNOCRACY_NAMES[i] : `Burocracia-${i + 1}`;
-    const x = 50 + (Math.random() - 0.5) * 30;
-    const y = 15 + Math.random() * 20;
-    const interior = 60 + Math.random() * 15;
+    const x = 50 + (Math.random() - 0.5) * 20;
+    const y = 18 + Math.random() * 15;
+    const interior = 65 + Math.random() * 15;
+
     agents.push({
       id: `agent-${idCounter++}`,
       name,
       socialClass: SocialClass.TECHNOCRACY,
       interior,
       alienation: Math.max(0, 100 - interior),
-      infrapowerRaw: 0.05,
-      infrapowerEffective: 0.05,
+      compliance: 0.90,
+      infrapowerRaw: 0.04,
+      infrapowerEffective: 0.04,
+      isStriking: false,
       activePhi: 0.0,
-      affinityDescription: 'Administración hegemónica',
-      classConsciousness: 0.4,
-      capital: 40 + Math.random() * 20,
+      affinityDescription: 'Administración y vigilancia estatal',
+      classConsciousness: 0.35,
+      capitalistAuraExposure: 0.8,
+      capital: 45 + Math.random() * 20,
       laborPower: 4,
       wage: config.baseWage * 1.8,
-      isStriking: false,
+      realWage: config.baseWage * 1.8,
       tactic: ActionTactic.GESTION_ESTATAL,
       x,
       y,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
       neighborsCount: 0,
     });
   }
@@ -138,29 +149,34 @@ export function createInitialPopulation(config: SimulationConfig): Agent[] {
   // 4. Ejército Industrial de Reserva (Marx)
   for (let i = 0; i < config.populationReserveArmy; i++) {
     const name = i < RESERVE_NAMES.length ? RESERVE_NAMES[i] : `Precarizado-${i + 1}`;
-    const x = 15 + Math.random() * 30;
-    const y = 65 + Math.random() * 25;
-    const interior = 5 + Math.random() * 10;
+    const x = 20 + Math.random() * 25;
+    const y = 70 + Math.random() * 20;
+    const interior = 8 + Math.random() * 12;
+    const rawIp = config.infrapowerMin + Math.random() * 0.25;
+
     agents.push({
       id: `agent-${idCounter++}`,
       name,
       socialClass: SocialClass.RESERVE_ARMY,
       interior,
       alienation: 100 - interior,
-      infrapowerRaw: config.infrapowerMin + Math.random() * 0.3,
-      infrapowerEffective: 0,
-      activePhi: config.phiBase - 0.1,
-      affinityDescription: 'Subsunción fragmentada',
-      classConsciousness: 0.1,
-      capital: 1 + Math.random() * 3,
-      laborPower: 6,
-      wage: config.baseWage * 0.3, // Precarización
+      compliance: 0.50,
+      infrapowerRaw: rawIp,
+      infrapowerEffective: rawIp,
       isStriking: false,
-      tactic: ActionTactic.INFRAPODER_MICROSCOPICO,
+      activePhi: config.phiBase - 0.1,
+      affinityDescription: 'Subsunción fragmentada en los márgenes',
+      classConsciousness: 0.1,
+      capitalistAuraExposure: 0,
+      capital: 1.5 + Math.random() * 2.5,
+      laborPower: 6,
+      wage: config.baseWage * 0.35,
+      realWage: config.baseWage * 0.35,
+      tactic: ActionTactic.ASIMILACION,
       x,
       y,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
       neighborsCount: 0,
     });
   }
@@ -187,15 +203,19 @@ export function createInitialMachineState(config: SimulationConfig): TheMachineS
     organicComposition: organicComp,
     rateOfProfit: profitRate,
     rateOfSurplusValue: initialSurplus / initialVariableCapital,
-    averageInfrapower: 0.3,
-    averageAlienation: 85,
+    averageInfrapower: 0.28,
+    averageAlienation: 82,
     averagePhi: config.phiBase,
     giniCoefficient: 0.42,
-    strikeParticipation: 0,
+    simpleInfrapowerParticipation: 0.20,
+    strikeParticipation: 0.0,
+    complianceParticipation: 0.80,
+    averageRealWage: config.baseWage,
+    capitalistClusterCohesion: 0.0,
+    capitalistAuraRadius: config.capitalistAuraBase,
   };
 }
 
-// Cálculo del coeficiente de Gini para medir desigualdad en el modelo
 function calculateGini(agents: Agent[]): number {
   if (agents.length <= 1) return 0;
   const values = agents.map(a => Math.max(0, a.capital)).sort((a, b) => a - b);
@@ -214,7 +234,13 @@ function calculateGini(agents: Agent[]): number {
 
 /**
  * Función central de evolución de un paso de simulación (Discrete Time Step)
- * Fusión de los 4 módulos originales de P.Perro con dinámica heterodoxa de clases
+ * Incorpora:
+ * 1. No-disgregación espacial: cohesión comunitaria subalterna (evita dispersión infinita)
+ * 2. Dinámica del capital: competencia (dispersión) vs estado de alarma (cartelización en cluster)
+ * 3. Aura de RP / normalización del capital que construye subjetividad e identidad en los sujetos cercanos
+ * 4. Homeostasis sistémica: el compliance/asimilación predomina en la mayoría de casos
+ * 5. Segmentación estricta entre Infrapoder simple (cotidiano, individual) y Huelga abierta (colectiva, quorum)
+ * 6. Efectividad estabilizadora del Salario Real y de la Acción Represiva de The Machine
  */
 export function simulateStep(
   agents: Agent[],
@@ -227,25 +253,153 @@ export function simulateStep(
   metricsPoint: SimulationMetricsPoint;
   newEvent: HistoricalEvent | null;
 } {
-  // 1. Dinámica espacial y movimiento suave de agentes en el campo
+  const isAlarmOrCrisis =
+    machine.regime === SystemRegime.ALARMA_PUNITIVA ||
+    machine.regime === SystemRegime.CRISIS_ORGANICA;
+
+  // 1. Dinámica espacial avanzada con cohesión social y clustering de clase
+  // 1.1 Calcular centroides de clases
+  const subalterns = agents.filter(
+    a => a.socialClass === SocialClass.PROLETARIAT || a.socialClass === SocialClass.RESERVE_ARMY
+  );
+  const capitalists = agents.filter(a => a.socialClass === SocialClass.CAPITALIST);
+  const technocrats = agents.filter(a => a.socialClass === SocialClass.TECHNOCRACY);
+
+  const subCentroid = subalterns.reduce(
+    (acc, a) => ({ x: acc.x + a.x / subalterns.length, y: acc.y + a.y / subalterns.length }),
+    { x: 50, y: 60 }
+  );
+
+  const capCentroid = capitalists.length > 0
+    ? capitalists.reduce(
+        (acc, a) => ({ x: acc.x + a.x / capitalists.length, y: acc.y + a.y / capitalists.length }),
+        { x: 75, y: 30 }
+      )
+    : { x: 75, y: 30 };
+
+  // Medir grado de cohesión/dispersión de los capitalistas
+  let capAverageDistToCentroid = 0;
+  if (capitalists.length > 1) {
+    capAverageDistToCentroid =
+      capitalists.reduce((sum, c) => sum + Math.hypot(c.x - capCentroid.x, c.y - capCentroid.y), 0) /
+      capitalists.length;
+  }
+  // Cohesión patronal normalizada [0 = dispersos, 1 = cluster compacto]
+  const capitalistCohesion = Math.max(0, Math.min(1, 1 - capAverageDistToCentroid / 25));
+
+  // Radio efectivo del aura de RP y normalización del capital
+  // Crece cuando el capital actúa como un cluster en estado de alarma
+  const effectiveAuraRadius =
+    config.capitalistAuraBase * (1 + (isAlarmOrCrisis ? 0.35 + capitalistCohesion * 0.35 : 0));
+
+  // 1.2 Actualizar posiciones espaciales con fuerzas de campo social
   const updatedAgents: Agent[] = agents.map(agent => {
-    let nx = agent.x + agent.vx;
-    let ny = agent.y + agent.vy;
-    let nvx = agent.vx;
-    let nvy = agent.vy;
+    let ax = 0;
+    let ay = 0;
 
-    // Rebote elástico en fronteras de 0 a 100
-    if (nx <= 5) { nx = 5; nvx = -nvx; }
-    if (nx >= 95) { nx = 95; nvx = -nvx; }
-    if (ny <= 5) { ny = 5; nvy = -nvy; }
-    if (ny >= 95) { ny = 95; nvy = -nvy; }
+    // Fuerzas para Proletariado y Reserva: Cohesión comunitaria para evitar disgregación paulatina
+    if (agent.socialClass === SocialClass.PROLETARIAT || agent.socialClass === SocialClass.RESERVE_ARMY) {
+      // Fuerza hacia el centroide de su clase (cohesión social / taller / barrio)
+      const distToCenter = Math.hypot(subCentroid.x - agent.x, subCentroid.y - agent.y);
+      if (distToCenter > 15) {
+        const pull = config.socialCohesionForce * 0.04 * (distToCenter / 30);
+        ax += ((subCentroid.x - agent.x) / distToCenter) * pull;
+        ay += ((subCentroid.y - agent.y) / distToCenter) * pull;
+      }
 
-    // Perturbación estocástica suave
-    nvx += (Math.random() - 0.5) * 0.05;
-    nvy += (Math.random() - 0.5) * 0.05;
-    // Amortiguación de velocidad
-    nvx = Math.max(-0.8, Math.min(0.8, nvx));
-    nvy = Math.max(-0.8, Math.min(0.8, nvy));
+      // Si está en huelga, siente atracción hacia otros huelguistas (piquete/asamblea)
+      if (agent.isStriking) {
+        const otherStrikers = subalterns.filter(s => s.id !== agent.id && s.isStriking);
+        if (otherStrikers.length > 0) {
+          const nearest = otherStrikers[0];
+          const d = Math.hypot(nearest.x - agent.x, nearest.y - agent.y);
+          if (d > 6) {
+            ax += ((nearest.x - agent.x) / d) * 0.05;
+            ay += ((nearest.y - agent.y) / d) * 0.05;
+          }
+        }
+      }
+    }
+
+    // Fuerzas para Capitalistas: Competencia constante vs Cartelización en Alarma
+    if (agent.socialClass === SocialClass.CAPITALIST) {
+      if (isAlarmOrCrisis) {
+        // EN ALARMA: Los actores del capital se unen formando un cluster patronal defensivo
+        const distToCapCenter = Math.hypot(capCentroid.x - agent.x, capCentroid.y - agent.y);
+        if (distToCapCenter > 4) {
+          const clusterPull = 0.08;
+          ax += ((capCentroid.x - agent.x) / distToCapCenter) * clusterPull;
+          ay += ((capCentroid.y - agent.y) / distToCapCenter) * clusterPull;
+        }
+      } else {
+        // EN CONSENSO (Competencia constante): Se repelen mutuamente para capturar nichos distintos
+        for (const other of capitalists) {
+          if (other.id !== agent.id) {
+            const d = Math.hypot(other.x - agent.x, other.y - agent.y);
+            if (d < 22 && d > 0.1) {
+              const repel = 0.04 * (1 - d / 22);
+              ax -= ((other.x - agent.x) / d) * repel;
+              ay -= ((other.y - agent.y) / d) * repel;
+            }
+          }
+        }
+      }
+    }
+
+    // Fuerzas para Tecnocracia: Disciplinar zonas de huelga bajo alarma o mantenerse en el centro hegemónico
+    if (agent.socialClass === SocialClass.TECHNOCRACY) {
+      if (isAlarmOrCrisis) {
+        // Moverse hacia donde haya huelga para reprimir o fiscalizar
+        const activeStrikers = subalterns.filter(s => s.isStriking);
+        if (activeStrikers.length > 0) {
+          const target = activeStrikers[0];
+          const d = Math.hypot(target.x - agent.x, target.y - agent.y);
+          if (d > 10) {
+            ax += ((target.x - agent.x) / d) * 0.06;
+            ay += ((target.y - agent.y) / d) * 0.06;
+          }
+        }
+      } else {
+        // Centro burocrático
+        const d = Math.hypot(50 - agent.x, 25 - agent.y);
+        if (d > 8) {
+          ax += ((50 - agent.x) / d) * 0.02;
+          ay += ((25 - agent.y) / d) * 0.02;
+        }
+      }
+    }
+
+    // Separación general de corto alcance (evita superposición total de nodos)
+    for (const other of agents) {
+      if (other.id !== agent.id) {
+        const d = Math.hypot(other.x - agent.x, other.y - agent.y);
+        if (d < 4.0 && d > 0.05) {
+          const softRepel = 0.03 * (1 - d / 4.0);
+          ax -= ((other.x - agent.x) / d) * softRepel;
+          ay -= ((other.y - agent.y) / d) * softRepel;
+        }
+      }
+    }
+
+    let nvx = (agent.vx + ax) * 0.92; // Fricción social
+    let nvy = (agent.vy + ay) * 0.92;
+
+    // Ruido browniano leve
+    nvx += (Math.random() - 0.5) * 0.03;
+    nvy += (Math.random() - 0.5) * 0.03;
+
+    // Límites de velocidad
+    nvx = Math.max(-0.6, Math.min(0.6, nvx));
+    nvy = Math.max(-0.6, Math.min(0.6, nvy));
+
+    let nx = agent.x + nvx;
+    let ny = agent.y + nvy;
+
+    // Límites de frontera con rebote elástico suave
+    if (nx <= 6) { nx = 6; nvx = -nvx * 0.5; }
+    if (nx >= 94) { nx = 94; nvx = -nvx * 0.5; }
+    if (ny <= 6) { ny = 6; nvy = -nvy * 0.5; }
+    if (ny >= 94) { ny = 94; nvy = -nvy * 0.5; }
 
     return {
       ...agent,
@@ -256,168 +410,278 @@ export function simulateStep(
     };
   });
 
-  // 2. Red de Afinidad Electiva Local (Weber / Löwy) e Infrapoder Colectivo
-  // Se evalúan interacciones entre agentes proletarios y precarizados en su radio
+  // 2. Cálculo de Exposición a RP / Aura de Normalización del Capital
+  // Representa la capacidad de Relaciones Públicas del capital para construir subjetividad e identidad
+  for (const agent of updatedAgents) {
+    if (agent.socialClass === SocialClass.PROLETARIAT || agent.socialClass === SocialClass.RESERVE_ARMY) {
+      let maxAuraExposure = 0;
+      for (const cap of capitalists) {
+        const dist = Math.hypot(cap.x - agent.x, cap.y - agent.y);
+        if (dist <= effectiveAuraRadius) {
+          // Intensidad del aura según cercanía al capitalista
+          const exposure = Math.max(0, 1 - dist / effectiveAuraRadius);
+          if (exposure > maxAuraExposure) {
+            maxAuraExposure = exposure;
+          }
+        }
+      }
+      agent.capitalistAuraExposure = maxAuraExposure;
+    } else {
+      agent.capitalistAuraExposure = agent.socialClass === SocialClass.CAPITALIST ? 1.0 : 0.7;
+    }
+  }
+
+  // 3. Salario Real y Estabilidad Sistémica
+  // El salario real mide el poder de compra frente a las exigencias exteriores del medio
+  const currentExterior = machine.exterior;
+  for (const agent of updatedAgents) {
+    if (agent.socialClass === SocialClass.PROLETARIAT || agent.socialClass === SocialClass.RESERVE_ARMY) {
+      // Normalización de salario real respecto al exterior base 100
+      agent.realWage = agent.wage * (100 / Math.max(50, currentExterior));
+    }
+  }
+
+  // 4. Dinámica de Agentes Subalternos: Infrapoder Simple vs Huelga y Homeostasis
   const proletariatAgents = updatedAgents.filter(
     a => a.socialClass === SocialClass.PROLETARIAT || a.socialClass === SocialClass.RESERVE_ARMY
   );
 
   let collectiveInfrapowerSum = 0;
   let phiSum = 0;
+  let simpleInfrapowerCount = 0;
   let strikeCount = 0;
+  let complianceCount = 0;
+  let totalRealWage = 0;
 
   for (const agent of proletariatAgents) {
-    // 2.1 Generar infrapoder estocástico crudo (Scott / Módulo 2 de P.Perro)
+    totalRealWage += agent.realWage;
+
+    // 4.1 Generar infrapoder estocástico base (Scott)
     const ipRaw = config.infrapowerMin + Math.random() * (config.infrapowerMax - config.infrapowerMin);
     agent.infrapowerRaw = ipRaw;
 
-    // 2.2 Buscar vecinos en el radio de interacción espacial
+    // 4.2 Vecinos en radio espacial
     const neighbors = proletariatAgents.filter(
       other => other.id !== agent.id &&
         Math.hypot(other.x - agent.x, other.y - agent.y) <= config.spatialRadius
     );
     agent.neighborsCount = neighbors.length;
 
-    // 2.3 Calcular Afinidad Electiva φ (Módulo 4 de P.Perro)
-    // φ fluctúa alrededor de phiBase con variabilidad gaussiana
+    // 4.3 Afinidad electiva φ (Weber / Löwy)
     const phi = Math.max(-1.0, Math.min(1.0, config.phiBase + randomGaussian(0, config.phiVolatility)));
     agent.activePhi = phi;
     phiSum += phi;
 
-    // 2.4 Calcular Infrapoder Colectivo Efectivo según Resonancia / Disonancia
+    // 4.4 Modulación de infrapoder efectivo
     let ipEffective = ipRaw;
     let description = '';
 
-    if (phi > 0) {
-      // Resonancia (potenciación mutua): factor = 1 + phi
-      // Si tiene vecinos cercanos, hay un bono adicional de organización asamblearia
-      const networkBonus = Math.min(0.5, neighbors.length * 0.08);
-      const factorPotenciacion = (1 + phi) * (1 + networkBonus);
+    if (phi > 0.05) {
+      const networkBonus = Math.min(0.35, neighbors.length * 0.05);
+      const factorPotenciacion = (1 + phi * 0.7) * (1 + networkBonus);
       ipEffective = ipRaw * factorPotenciacion;
-      description = `RESONANCIA (φ=${phi.toFixed(2)}): potenciado x${factorPotenciacion.toFixed(2)}`;
-    } else if (phi < 0) {
-      // Disonancia (interferencia mutua / fragmentación): factor = 1 + phi
-      const factorAtenuacion = Math.max(0.05, 1 + phi);
+      description = `RESONANCIA (φ=${phi.toFixed(2)}): potenciación mutua x${factorPotenciacion.toFixed(2)}`;
+    } else if (phi < -0.05) {
+      const factorAtenuacion = Math.max(0.15, 1 + phi * 0.6);
       ipEffective = ipRaw * factorAtenuacion;
-      description = `DISONANCIA (φ=${phi.toFixed(2)}): atenuado x${factorAtenuacion.toFixed(2)}`;
+      description = `DISONANCIA (φ=${phi.toFixed(2)}): fragmentación x${factorAtenuacion.toFixed(2)}`;
     } else {
-      description = `INDIFERENCIA (φ≈0): sin efecto mutuo`;
+      description = 'INDIFERENCIA (φ≈0): sin efecto mutuo';
     }
 
-    // Acotar infrapoder efectivo a rango razonable [0, 1.3]
+    // 4.5 Efecto de Aura de Normalización del Capital (RP / Hegemonía cultural)
+    // "la presencia de actores del capital cercana a clusters de actores debería de generar una
+    // identificación del sujeto/artefacto masa con el capital (RP del capital para construir subjetividad)"
+    if (agent.capitalistAuraExposure > 0.1) {
+      const auraImpact = agent.capitalistAuraExposure;
+      // Reduce infrapoder por asimilación psicológica y aspiracionalidad
+      ipEffective *= Math.max(0.2, 1 - auraImpact * 0.65);
+      // Incrementa adhesión al statu quo (compliance)
+      agent.compliance = Math.min(1.0, agent.compliance + auraImpact * 0.08);
+      // Falsa conciencia / atenuación de conciencia de clase combativa
+      agent.classConsciousness = Math.max(0.05, agent.classConsciousness - auraImpact * 0.05);
+      description += ` + RP/Aura Capital (${(auraImpact * 100).toFixed(0)}% identificación)`;
+    }
+
+    // 4.6 Efecto estabilizador del Salario Real
+    // "El aumento de salario real estabiliza el sistema"
+    const wageGap = agent.realWage - config.baseWage;
+    if (wageGap > 0) {
+      // Salario real abundante pacifica el conflicto: aumenta compliance y reduce radicalización
+      const pacification = Math.min(0.4, (wageGap / config.baseWage) * config.wageStabilityFactor);
+      ipEffective *= Math.max(0.25, 1 - pacification);
+      agent.compliance = Math.min(1.0, agent.compliance + pacification * 0.1);
+    } else if (wageGap < -0.5) {
+      // Precarización: estimula descontento
+      const grievance = Math.min(0.3, Math.abs(wageGap / config.baseWage) * 0.2);
+      ipEffective += grievance;
+      agent.compliance = Math.max(0.05, agent.compliance - 0.05);
+    }
+
+    // 4.7 Efecto de la Acción Represiva de The Machine (Alarma punitiva y alfa alto)
+    // "así mismo como la acción represiva de the machine"
+    if (machine.regime === SystemRegime.ALARMA_PUNITIVA) {
+      // Coerción y presencia policial/burocrática eleva drásticamente el costo de huelga abierta
+      // y obliga al repliegue defensivo
+      const repressiveForce = (machine.alfa / 0.65) * config.repressiveEfficiency;
+      if (agent.isStriking) {
+        // Probabilidad de quiebre o disolución policial del piquete
+        if (Math.random() < repressiveForce * 0.45 + 0.1) {
+          agent.isStriking = false; // Desarticulación forzosa de la huelga
+          agent.compliance = Math.min(0.9, agent.compliance + 0.15); // Sumisión forzada
+        }
+      }
+    }
+
     agent.infrapowerEffective = Math.min(1.3, Math.max(0.02, ipEffective));
     agent.affinityDescription = description;
     collectiveInfrapowerSum += agent.infrapowerEffective;
 
-    // 2.5 Actualización de conciencia de clase (Klasse für sich)
-    if (phi > 0.3 && neighbors.length >= 2) {
-      agent.classConsciousness = Math.min(1.0, agent.classConsciousness + 0.03);
-    } else if (phi < -0.2) {
+    // 4.8 Conciencia de clase: evolución lenta y contextual
+    if (phi > 0.25 && neighbors.length >= 3 && agent.capitalistAuraExposure < 0.25) {
+      agent.classConsciousness = Math.min(1.0, agent.classConsciousness + 0.015);
+    } else if (agent.capitalistAuraExposure > 0.4 || phi < -0.2) {
       agent.classConsciousness = Math.max(0.05, agent.classConsciousness - 0.02);
     }
 
-    // 2.6 Decisión de huelga / táctica
-    // Si infrapoder efectivo > 0.8 y conciencia > 0.5, huelga resonante abierta
-    if (agent.infrapowerEffective >= 0.78 && agent.classConsciousness >= 0.45) {
+    // 4.9 SEGMENTACIÓN ESTRICTA: Infrapoder Simple vs Acción de Huelga Abierta
+    // - Huelga abierta: Requiere acción colectiva consciente, red de apoyo/quorum local (>= 2 vecinos),
+    //   alta conciencia de clase (>= 0.48), alta resonancia (phi > 0.15), baja cooptación por RP del capital,
+    //   y alto agravio o infrapoder efectivo >= 0.72.
+    // - Infrapoder simple: Resistencia cotidiana individual (armas de los débiles de Scott),
+    //   NO suspende el trabajo, NO rompe el salario, pero desgasta la tasa de extracción.
+    // - Asimilación / Compliance: Adhesión cotidiana hegemónica (la mayoría en homeostasis).
+    const strikeNeighbors = neighbors.filter(n => n.classConsciousness > 0.4 || n.isStriking).length;
+    const canStrike =
+      strikeNeighbors >= 2 &&
+      agent.classConsciousness >= 0.45 &&
+      agent.activePhi >= 0.12 &&
+      agent.capitalistAuraExposure < 0.35 &&
+      (agent.infrapowerEffective >= 0.72 || agent.realWage < config.baseWage * 0.85);
+
+    if (agent.isStriking) {
+      // Si ya está en huelga, evalúa si sostenerla o ceder por desgaste o concesiones
+      if (agent.capital < 1.0 || agent.realWage > config.baseWage * 1.15 || agent.capitalistAuraExposure > 0.5) {
+        agent.isStriking = false;
+        agent.tactic = ActionTactic.ASIMILACION;
+        complianceCount++;
+      } else {
+        agent.isStriking = true;
+        agent.tactic = ActionTactic.HUELGA_RESONANTE;
+        strikeCount++;
+      }
+    } else if (canStrike) {
       agent.isStriking = true;
       agent.tactic = ActionTactic.HUELGA_RESONANTE;
       strikeCount++;
-    } else if (agent.infrapowerEffective > 0.4) {
+    } else if (agent.infrapowerEffective > 0.40) {
+      // Infrapoder simple (cotidiano, disimulado, no huelga)
       agent.isStriking = false;
       agent.tactic = ActionTactic.INFRAPODER_MICROSCOPICO;
+      simpleInfrapowerCount++;
     } else {
+      // Asimilación y compliance (homeostasis predominante)
       agent.isStriking = false;
       agent.tactic = ActionTactic.ASIMILACION;
+      complianceCount++;
     }
 
-    // 2.7 Dinámica de Adaptación del Artefacto (Herbert Simon / Cioffi-Revilla / Módulos 1, 2, 4)
+    // 4.10 Dinámica del Artefacto (Herbert Simon / Cioffi-Revilla)
     // Discrepancia = Exterior - Interior
-    const discrepancia = machine.exterior - agent.interior;
-    agent.alienation = discrepancia;
+    const discrepancia = currentExterior - agent.interior;
+    agent.alienation = Math.max(0, discrepancia);
 
-    // La asimilación efectiva es mitigada por el infrapoder
-    // Si infrapoder es alto, frena la domesticación
-    const factorMitigacion = Math.max(0.0, 1 - agent.infrapowerEffective);
-    const efectoAsimilacion = machine.alfa * discrepancia * factorMitigacion;
+    // Asimilación hegemónica del interior:
+    // La presión alfa empuja el interior hacia el exterior.
+    // El infrapoder frena la asimilación; el aura de RP del capital la acelera.
+    const resistenciaAsimilacion = Math.max(0.1, 1 - agent.infrapowerEffective * 0.75);
+    const auraImpulso = 1 + agent.capitalistAuraExposure * 0.6;
+    const efectoAsimilacion = machine.alfa * discrepancia * resistenciaAsimilacion * auraImpulso * 0.12;
+
     agent.interior = Math.max(0, agent.interior + efectoAsimilacion);
   }
 
-  // Agentes burgueses y tecnocráticos (no proletarios)
+  // Actualizar agentes no proletarios (capitalistas y tecnocracia)
   for (const agent of updatedAgents) {
-    if (agent.socialClass === SocialClass.CAPITALIST || agent.socialClass === SocialClass.TECHNOCRACY) {
-      const discrepancia = machine.exterior - agent.interior;
+    if (agent.socialClass === SocialClass.CAPITALIST) {
+      const discrepancia = currentExterior - agent.interior;
       agent.alienation = Math.max(0, discrepancia);
-      // Asimilación directa sin infrapoder de resistencia obrera
-      agent.interior = Math.min(machine.exterior, agent.interior + machine.alfa * discrepancia * 0.7);
+      agent.interior = Math.min(currentExterior, agent.interior + machine.alfa * discrepancia * 0.4);
+      agent.tactic = isAlarmOrCrisis
+        ? ActionTactic.CARTEL_PATRONAL_ALARMA
+        : ActionTactic.DISCIPLINA_PATRONAL;
+    } else if (agent.socialClass === SocialClass.TECHNOCRACY) {
+      const discrepancia = currentExterior - agent.interior;
+      agent.alienation = Math.max(0, discrepancia);
+      agent.interior = Math.min(currentExterior, agent.interior + machine.alfa * discrepancia * 0.3);
+      agent.tactic = ActionTactic.GESTION_ESTATAL;
     }
   }
 
-  // 3. Reacción Dinámica de The Machine (Módulo 3 y 4 de P.Perro)
-  const proletarianCount = Math.max(1, proletariatAgents.length);
-  const ipPromedio = collectiveInfrapowerSum / proletarianCount;
-  const phiPromedio = phiSum / proletarianCount;
-  const strikeRate = strikeCount / proletarianCount;
+  // 5. Coevolución de The Machine y Homeostasis
+  const proletarianTotal = Math.max(1, proletariatAgents.length);
+  const ipPromedio = collectiveInfrapowerSum / proletarianTotal;
+  const phiPromedio = phiSum / proletarianTotal;
+  const strikeRate = strikeCount / proletarianTotal;
+  const simpleIpRate = simpleInfrapowerCount / proletarianTotal;
+  const complianceRate = complianceCount / proletarianTotal;
+  const avgRealWage = totalRealWage / proletarianTotal;
 
   let nuevoAlfa = machine.alfa;
   let movimientoExterior = 0;
   let nuevoRegimen = machine.regime;
   let newAlarmCount = machine.alarmCount;
 
-  // Umbral de alarma del sistema
-  if (ipPromedio > config.alarmThreshold || strikeRate > 0.35) {
-    // ALARMA: El sistema eleva la presión de control y castiga alejando el exterior
+  // Condiciones de Alarma del Sistema:
+  // Se activa si las huelgas superan el 20% o el infrapoder general supera el umbral configurado
+  const sistemaEnTension = ipPromedio > config.alarmThreshold || strikeRate > 0.20;
+
+  if (sistemaEnTension) {
+    // ALARMA: The Machine intensifica la presión punitiva (alfa sube)
     nuevoAlfa = machine.alfa + config.machineReactionFactor;
-    movimientoExterior = 3.0 + Math.random() * 5.0; // Castigo: El exterior se aleja
+    movimientoExterior = 2.0 + Math.random() * 3.0; // Punición exterior
     nuevoRegimen = SystemRegime.ALARMA_PUNITIVA;
     newAlarmCount++;
   } else {
-    // RELAJACIÓN / CONSENSO: El sistema reduce la presión punitiva y se acerca
-    nuevoAlfa = machine.alfa - config.machineReactionFactor;
-    movimientoExterior = -(1.0 + Math.random() * 3.0); // Concesión hegemónica: El exterior se acerca
+    // CONSENSO / HOMEOSTASIS: El sistema relaja la coerción y acerca el exterior para pacificar
+    nuevoAlfa = machine.alfa - config.machineReactionFactor * 0.8;
+    movimientoExterior = -(1.0 + Math.random() * 2.0); // Concesión hegemónica
     nuevoRegimen = SystemRegime.CONSENSO_HEGEMONICO;
   }
 
-  // Acotar alfa a rangos realistas (según script v4: entre 0.03 y 0.65)
-  nuevoAlfa = Math.max(0.03, Math.min(0.65, nuevoAlfa));
-  const nuevoExterior = Math.max(50, Math.min(160, machine.exterior + movimientoExterior));
+  // Acotar alfa entre 0.05 y 0.65
+  nuevoAlfa = Math.max(0.05, Math.min(0.65, nuevoAlfa));
+  const nuevoExterior = Math.max(60, Math.min(150, machine.exterior + movimientoExterior));
 
-  // 4. Economía Política Marxista: Acumulación de Capital y Tasa de Ganancia
-  // Capital Variable v: masa de salarios pagada a trabajadores no huelguistas
+  // 6. Economía Política Marxista: Acumulación, Salarios y TRPF
   let variableCapital = 0;
-  let potentialOutput = 0;
   let extractedSurplus = 0;
 
   for (const agent of proletariatAgents) {
     if (agent.isStriking) {
-      // En huelga: salario de subsistencia reducido de caja de resistencia, cero producción
-      agent.capital = Math.max(0.5, agent.capital - 0.2);
+      // Huelguista: Cero producción de plusvalía y consume fondo de subsistencia
+      agent.capital = Math.max(0.5, agent.capital - 0.25);
     } else {
       variableCapital += agent.wage;
-      // Producción potencial
-      const output = agent.laborPower * 2.2;
-      potentialOutput += output;
-      // Extracción de plusvalía mitigada por infrapoder cotidiano (resistencia en el taller)
-      const surplusPerWorker = Math.max(0, (output - agent.wage) * (1 - agent.infrapowerEffective * 0.7));
+      const potentialOutput = agent.laborPower * 2.4;
+      // Infrapoder simple genera un micro-desgaste en la tasa de extracción sin parar la producción
+      const microResistanceLoss = agent.infrapowerEffective * 0.25;
+      const surplusPerWorker = Math.max(0, (potentialOutput - agent.wage) * (1 - microResistanceLoss));
       extractedSurplus += surplusPerWorker;
 
-      // Pago de salario al trabajador
-      agent.capital += agent.wage * 0.2; // Ahorro neto tras subsistencia
+      // Ahorro neto obrero tras subsistencia
+      agent.capital += agent.wage * 0.18;
     }
   }
 
-  // Capital Constante c crece por mecanización/competencia entre capitalistas
-  const mechanizationIncrease = config.mechanizationSpeed * (1 + (machine.rateOfProfit > 0.15 ? 0.05 : 0.01));
+  // Capital constante c crece por mecanización/competencia
+  const mechanizationIncrease = config.mechanizationSpeed * (1 + (machine.rateOfProfit > 0.14 ? 0.05 : 0.01));
   const constantCapital = machine.constantCapital + mechanizationIncrease;
-
-  // Composición Orgánica del Capital OCC = c / v
   const organicComp = constantCapital / Math.max(1, variableCapital);
-
-  // Tasa de Ganancia General: Pi = s / (c + v)
   const rateOfProfit = extractedSurplus / Math.max(1, constantCapital + variableCapital);
   const rateOfSurplusValue = extractedSurplus / Math.max(1, variableCapital);
 
   // Transferencia de plusvalía a capitalistas
-  const capitalists = updatedAgents.filter(a => a.socialClass === SocialClass.CAPITALIST);
   if (capitalists.length > 0) {
     const surplusShare = extractedSurplus / capitalists.length;
     for (const cap of capitalists) {
@@ -425,24 +689,24 @@ export function simulateStep(
     }
   }
 
-  // Detectar Crisis Orgánica (Gramsci / Marx TRPF):
-  // Si la tasa de ganancia cae drásticamente (< 0.08) y el infrapoder obrero es alto (> 0.55)
-  if (rateOfProfit < 0.08 && ipPromedio > 0.50) {
+  // Detección de Crisis Orgánica (Marx TRPF + Gramsci):
+  // Caída severa de tasa de ganancia + insurrección activa
+  if (rateOfProfit < 0.075 && (strikeRate > 0.25 || ipPromedio > 0.52)) {
     nuevoRegimen = SystemRegime.CRISIS_ORGANICA;
   }
 
-  // 5. Coeficiente de Gini
+  // Coeficiente de Gini
   const gini = calculateGini(updatedAgents);
 
-  // Promedios de telemetría
+  // Promedios de interior y alienación
   const meanInteriorProletariat =
-    proletariatAgents.reduce((sum, a) => sum + a.interior, 0) / proletarianCount;
+    proletariatAgents.reduce((sum, a) => sum + a.interior, 0) / proletarianTotal;
   const meanInteriorCapitalist =
     capitalists.length > 0
       ? capitalists.reduce((sum, a) => sum + a.interior, 0) / capitalists.length
-      : 80;
+      : 85;
   const meanAlienation =
-    proletariatAgents.reduce((sum, a) => sum + a.alienation, 0) / proletarianCount;
+    proletariatAgents.reduce((sum, a) => sum + a.alienation, 0) / proletarianTotal;
 
   const nextMachine: TheMachineState = {
     exterior: nuevoExterior,
@@ -460,7 +724,12 @@ export function simulateStep(
     averageAlienation: meanAlienation,
     averagePhi: phiPromedio,
     giniCoefficient: gini,
+    simpleInfrapowerParticipation: simpleIpRate,
     strikeParticipation: strikeRate,
+    complianceParticipation: complianceRate,
+    averageRealWage: avgRealWage,
+    capitalistClusterCohesion: capitalistCohesion,
+    capitalistAuraRadius: effectiveAuraRadius,
   };
 
   const metricsPoint: SimulationMetricsPoint = {
@@ -476,25 +745,28 @@ export function simulateStep(
     rateOfSurplusValue: parseFloat(rateOfSurplusValue.toFixed(3)),
     organicComposition: parseFloat(organicComp.toFixed(2)),
     gini: parseFloat(gini.toFixed(3)),
+    simpleInfrapowerPercentage: parseFloat((simpleIpRate * 100).toFixed(1)),
     strikePercentage: parseFloat((strikeRate * 100).toFixed(1)),
+    compliancePercentage: parseFloat((complianceRate * 100).toFixed(1)),
+    realWagePromedio: parseFloat(avgRealWage.toFixed(2)),
+    capitalistCohesion: parseFloat(capitalistCohesion.toFixed(2)),
     regime: nuevoRegimen,
   };
 
-  // 6. Generador de Eventos Históricos Sociológicos (Bitácora de Ciencias Sociales Computacionales)
+  // 7. Generador de Eventos Históricos Sociológicos
   let newEvent: HistoricalEvent | null = null;
   const generateEventId = (prefix: string) =>
     `event-${prefix}-${currentStep}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
-  // Detección de cambio de régimen o eventos paradigmáticos
   if (machine.regime !== nuevoRegimen) {
     if (nuevoRegimen === SystemRegime.CRISIS_ORGANICA) {
       newEvent = {
         id: generateEventId('crisis'),
         step: currentStep,
         type: 'CRISIS',
-        title: 'Bifurcación: Crisis Orgánica del Modo de Producción',
-        description: `La tasa de ganancia general cayó a ${(rateOfProfit * 100).toFixed(1)}% bajo una composición orgánica c/v de ${organicComp.toFixed(2)}, mientras el infrapoder colectivo superó el umbral crítico.`,
-        theoreticalNote: 'Articulación de la Ley de la Tendencia Decreciente de la Cuota de Ganancia (Marx, El Capital t. III) con la noción gramsciana de Crisis Orgánica donde la hegemonía se resquebraja y las clases subalternas entran en disrupción.',
+        title: 'Bifurcación: Crisis Orgánica y Bloqueo de Acumulación',
+        description: `La tasa de ganancia general cayó a ${(rateOfProfit * 100).toFixed(1)}% bajo c/v=${organicComp.toFixed(2)}, coincidiendo con un paro obrero del ${(strikeRate * 100).toFixed(0)}%.`,
+        theoreticalNote: 'Ley de la Tendencia Decreciente de la Tasa de Ganancia (Marx, El Capital t. III) articulada con la crisis de autoridad y ruptura de hegemonía gramsciana.',
         author: 'Karl Marx & Antonio Gramsci',
       };
     } else if (nuevoRegimen === SystemRegime.ALARMA_PUNITIVA) {
@@ -502,9 +774,9 @@ export function simulateStep(
         id: generateEventId('alarma'),
         step: currentStep,
         type: 'ALARMA',
-        title: 'Régimen de Alarma Sistémica: Disciplinamiento de The Machine',
-        description: `The Machine detectó un infrapoder agregado de ${(ipPromedio * 100).toFixed(1)}% (> umbral ${(config.alarmThreshold * 100).toFixed(0)}%). La presión alfa subió a ${nuevoAlfa.toFixed(2)} y el exterior se desplazó punitivamente a ${nuevoExterior.toFixed(1)}.`,
-        theoreticalNote: 'Módulo 3 y 4 de coevolución: el sistema percibe la resistencia encubierta y exacerba su coerción. Foucault (Vigilar y Castigar) y Scott (Dominación y Artes de la Resistencia).',
+        title: 'Régimen de Alarma: Cartel Patronal y Disciplina de The Machine',
+        description: `Infrapoder agregado (${(ipPromedio * 100).toFixed(0)}%) o huelgas superaron el umbral. El capital superó su rivalidad competitiva agrupándose en cluster patronal, mientras The Machine elevó alfa a ${nuevoAlfa.toFixed(2)}.`,
+        theoreticalNote: 'Coerción burocrática (Foucault) y unión de la burguesía en bloque de clase cuando su tasa de extracción se ve amenazada.',
         author: 'Herbert Simon & James C. Scott',
       };
     } else if (nuevoRegimen === SystemRegime.CONSENSO_HEGEMONICO) {
@@ -512,21 +784,31 @@ export function simulateStep(
         id: generateEventId('relajacion'),
         step: currentStep,
         type: 'RELAJACION',
-        title: 'Régimen de Consenso Hegemónico: Relajación de Presión',
-        description: `El infrapoder colectivo disminuyó a ${(ipPromedio * 100).toFixed(1)}%. The Machine redujo alfa a ${nuevoAlfa.toFixed(2)} y el exterior retrocedió a ${nuevoExterior.toFixed(1)} buscando pasivización.`,
-        theoreticalNote: 'Transformismo y hegemonía consensual: el bloque dominante no necesita violencia abierta cuando el habitus subalterno se reacomoda al statu quo (Bourdieu / Gramsci).',
+        title: 'Homeostasis Restaurada: Consenso y Asimilación Mayoritaria',
+        description: `El sistema logró pacificar el disenso: compliance alcanzó el ${(complianceRate * 100).toFixed(0)}%. Alfa disminuyó a ${nuevoAlfa.toFixed(2)} y los capitalistas regresaron a su competencia de mercado habitual.`,
+        theoreticalNote: 'Homeostasis hegemónica: la asimilación del interior del artefacto al statu quo predomina sin necesidad de coerción continua abierta (Bourdieu / Gramsci).',
         author: 'Antonio Gramsci & Pierre Bourdieu',
       };
     }
-  } else if (strikeRate > 0.4 && currentStep % 5 === 0) {
+  } else if (strikeRate > 0.30 && currentStep % 5 === 0) {
     newEvent = {
       id: generateEventId('strike'),
       step: currentStep,
       type: 'HUELGA',
-      title: `Ola de Huelgas Resonantes: ${(strikeRate * 100).toFixed(0)}% de Participación`,
-      description: `La afinidad colectiva positiva (φ=${phiPromedio.toFixed(2)}) catalizó la transición de la resistencia cotidiana encubierta a la huelga abierta de masas.`,
-      theoreticalNote: 'Paso de la Clase en Sí (Klasse an sich) a la Clase para Sí (Klasse für sich) potenciado por afinidad electiva y densidad reticular (Marx / Weber / Löwy).',
+      title: `Huelga Abierta Masiva: ${(strikeRate * 100).toFixed(0)}% de Participación`,
+      description: `Los subalternos superaron el infrapoder microscópico y formaron asambleas de huelga abierta con alta resonancia (φ=${phiPromedio.toFixed(2)}).`,
+      theoreticalNote: 'Transición de la resistencia cotidiana individual (Scott) a la Huelga de Masas organizada (Rosa Luxemburg).',
       author: 'Rosa Luxemburg & Michael Löwy',
+    };
+  } else if (capitalistCohesion > 0.75 && isAlarmOrCrisis && currentStep % 7 === 0) {
+    newEvent = {
+      id: generateEventId('cluster'),
+      step: currentStep,
+      type: 'CLUSTER_PATRONAL',
+      title: 'Cartelización del Capital: Aura de Normalización Expandida',
+      description: `Los actores del capital formaron un cluster defensivo cohesionado (cohesión ${(capitalistCohesion * 100).toFixed(0)}%), expandiendo su radio de influencia ideológica y RP a ${effectiveAuraRadius.toFixed(0)}px.`,
+      theoreticalNote: 'Construcción de subjetividad empresarial y consenso pasivo: el capital unificado proyecta un aura cultural que coopta a los subalternos circundantes.',
+      author: 'Antonio Gramsci & Herbert Marcuse',
     };
   } else if (phiPromedio > 0.45 && currentStep % 8 === 0) {
     newEvent = {
@@ -534,8 +816,8 @@ export function simulateStep(
       step: currentStep,
       type: 'RESONANCIA',
       title: 'Resonancia Colectiva Subalterna',
-      description: `Los artefactos-sujetos han entrado en alta afinidad electiva (φ promedio = ${phiPromedio.toFixed(2)}), duplicando el rendimiento de sus tácticas de infrapoder.`,
-      theoreticalNote: 'Teoría de la afinidad electiva: la convergencia estructural genera una alianza no impuesta que amplifica exponencialmente la capacidad de resistencia del polo dominado.',
+      description: `Afinidad electiva promedio (φ=${phiPromedio.toFixed(2)}) fortalece la densidad comunitaria y neutraliza temporalmente la alienación.`,
+      theoreticalNote: 'Afinidad electiva: convergencia ética y política de los estratos dominados (Weber / Löwy).',
       author: 'Max Weber & Michael Löwy',
     };
   }

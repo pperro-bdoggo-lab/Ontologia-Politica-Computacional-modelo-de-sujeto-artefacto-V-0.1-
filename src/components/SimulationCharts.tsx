@@ -19,13 +19,26 @@ interface Props {
 }
 
 export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
-  const [activeTab, setActiveTab] = useState<'artefactos' | 'marx' | 'infrapoder' | 'desigualdad'>('artefactos');
+  const [activeTab, setActiveTab] = useState<'artefactos' | 'marx' | 'infrapoder' | 'desigualdad'>('infrapoder');
 
   return (
     <div className="bg-slate-900/80 rounded-xl border border-slate-800 p-4 shadow-lg flex flex-col h-[340px]">
-      {/* Selector de pestañas temáticas de Ciencias Sociales */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+      {/* Selector de pestañas temáticas */}
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-2 mb-3 gap-2">
         <div className="flex items-center gap-1 overflow-x-auto text-xs">
+          <button
+            id="tab-infrapoder"
+            onClick={() => setActiveTab('infrapoder')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+              activeTab === 'infrapoder'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span>Infrapoder vs Huelga & Compliance</span>
+          </button>
+
           <button
             id="tab-artefactos"
             onClick={() => setActiveTab('artefactos')}
@@ -49,20 +62,7 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Tasa Ganancia & Plusvalía (Marx)</span>
-          </button>
-
-          <button
-            id="tab-infrapoder"
-            onClick={() => setActiveTab('infrapoder')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
-              activeTab === 'infrapoder'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>Infrapoder & The Machine (Scott)</span>
+            <span>Tasa Ganancia & Salario Real</span>
           </button>
 
           <button
@@ -75,19 +75,62 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
             }`}
           >
             <Scale className="w-3.5 h-3.5" />
-            <span>Gini & Huelgas</span>
+            <span>Gini & Cartel Patronal</span>
           </button>
         </div>
 
         <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
-          {data.length} pasos temporales simulados
+          {data.length} pasos simulados
         </span>
       </div>
 
-      {/* Gráfico Recharts con alta precisión tipográfica */}
+      {/* Gráfico Recharts con alta precisión */}
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          {activeTab === 'artefactos' ? (
+          {activeTab === 'infrapoder' ? (
+            <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="step" stroke="#64748b" tick={{ fontSize: 11 }} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: 8, fontSize: 11 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
+              <Line
+                type="monotone"
+                dataKey="compliancePercentage"
+                name="% Asimilación (Compliance)"
+                stroke="#38bdf8"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="simpleInfrapowerPercentage"
+                name="% Infrapoder Simple (Scott)"
+                stroke="#10b981"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="strikePercentage"
+                name="% Huelga Abierta (Luxemburg)"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="alfa"
+                name="Presión Alfa (x100)"
+                stroke="#f97316"
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+                dot={false}
+              />
+            </LineChart>
+          ) : activeTab === 'artefactos' ? (
             <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="step" stroke="#64748b" tick={{ fontSize: 11 }} />
@@ -107,7 +150,7 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
               <Line
                 type="monotone"
                 dataKey="interiorProletariat"
-                name="Interior Proletario (Asimilación)"
+                name="Interior Proletario (Habitus)"
                 stroke="#10b981"
                 strokeWidth={2}
                 dot={false}
@@ -131,7 +174,7 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
                 contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: 8, fontSize: 11 }}
               />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
-              <ReferenceLine y={0.08} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Umbral Crisis Π', fill: '#ef4444', fontSize: 10 }} />
+              <ReferenceLine y={0.08} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Crisis Π', fill: '#ef4444', fontSize: 10 }} />
               <Line
                 type="monotone"
                 dataKey="rateOfProfit"
@@ -142,9 +185,9 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
               />
               <Line
                 type="monotone"
-                dataKey="rateOfSurplusValue"
-                name="Tasa Plusvalía (s/v)"
-                stroke="#8b5cf6"
+                dataKey="realWagePromedio"
+                name="Salario Real Promedio"
+                stroke="#10b981"
                 strokeWidth={1.8}
                 dot={false}
               />
@@ -155,47 +198,6 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
                 stroke="#0ea5e9"
                 strokeWidth={1.5}
                 strokeDasharray="3 3"
-                dot={false}
-              />
-            </LineChart>
-          ) : activeTab === 'infrapoder' ? (
-            <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="step" stroke="#64748b" tick={{ fontSize: 11 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 11 }} domain={[0, 1.2]} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: 8, fontSize: 11 }}
-              />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
-              <ReferenceLine
-                y={alarmThreshold}
-                stroke="#ef4444"
-                strokeDasharray="4 4"
-                label={{ value: `Umbral Alarma (${(alarmThreshold * 100).toFixed(0)}%)`, fill: '#ef4444', fontSize: 10 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="infrapowerPromedio"
-                name="Infrapoder Colectivo Efectivo"
-                stroke="#10b981"
-                strokeWidth={2.2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="alfa"
-                name="Presión Alfa (The Machine)"
-                stroke="#f97316"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="phiPromedio"
-                name="Afinidad Promedio (φ)"
-                stroke="#06b6d4"
-                strokeWidth={1.5}
-                strokeDasharray="2 2"
                 dot={false}
               />
             </LineChart>
@@ -218,9 +220,9 @@ export const SimulationCharts: React.FC<Props> = ({ data, alarmThreshold }) => {
               />
               <Line
                 type="monotone"
-                dataKey="strikePercentage"
-                name="% Trabajadores en Huelga"
-                stroke="#ec4899"
+                dataKey="capitalistCohesion"
+                name="Cohesión Cartel Patronal"
+                stroke="#f59e0b"
                 strokeWidth={2}
                 dot={false}
               />
