@@ -1,0 +1,6 @@
+{
+  "name": "Simulador de Ciencias Sociales Computacionales: Dinámicas de Clase y The Machine",
+  "description": "Modelo predictivo basado en agentes para Ciencias Sociales Computacionales integrando teoría de artefactos, infrapoder, acumulación de capital y afinidad electiva marxista heterodoxa.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
